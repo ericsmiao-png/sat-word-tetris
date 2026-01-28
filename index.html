@@ -836,8 +836,11 @@
             // Set up keyboard controls
             document.addEventListener('keydown', handleKeyPress);
 
-            // Prevent double-tap zoom on mobile
-            document.addEventListener('touchend', (e) => {
+            // Prevent double-tap zoom on game canvas only
+            canvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+            }, { passive: false });
+            canvas.addEventListener('touchend', (e) => {
                 e.preventDefault();
             }, { passive: false });
 
