@@ -503,15 +503,19 @@
         @media (max-width: 768px) {
             body {
                 align-items: flex-start;
-                padding-top: 60px;
-                overflow-y: auto;
+                padding-top: 45px;
+                overflow: hidden;
+                height: 100vh;
+                height: 100dvh;
             }
 
             .game-container {
                 flex-direction: column;
                 align-items: center;
                 gap: 0;
-                padding: 10px;
+                padding: 5px;
+                height: calc(100vh - 45px);
+                height: calc(100dvh - 45px);
             }
 
             .side-panel {
@@ -519,33 +523,74 @@
             }
 
             .main-panel {
-                gap: 10px;
+                gap: 5px;
+                flex: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                max-height: 100%;
             }
 
             .word-display {
-                min-height: 60px;
+                min-height: auto;
+                padding: 2px 0;
             }
 
             .current-word {
-                font-size: 1.5rem;
-                letter-spacing: 0.2em;
+                font-size: 1.2rem;
+                letter-spacing: 0.15em;
+                margin-bottom: 2px;
             }
 
             .definition {
-                font-size: 0.8rem;
+                font-size: 0.7rem;
                 max-width: 280px;
             }
 
             .touch-controls {
                 display: block;
+                margin-top: 5px;
+            }
+
+            .touch-row {
+                margin-bottom: 5px;
+            }
+
+            .touch-btn {
+                width: 60px;
+                height: 44px;
+                font-size: 1.3rem;
+            }
+
+            .touch-btn.wide {
+                width: 130px;
             }
 
             .mobile-info {
                 display: block;
+                margin-bottom: 5px;
+            }
+
+            .mobile-info-row {
+                padding: 4px 0;
+            }
+
+            .mobile-score {
+                font-size: 1.2rem;
+            }
+
+            .mobile-level {
+                font-size: 0.75rem;
             }
 
             .mobile-difficulty {
                 display: flex;
+                margin-bottom: 5px;
+            }
+
+            .mobile-difficulty .difficulty-btn {
+                padding: 6px 4px;
+                font-size: 0.7rem;
             }
 
             .pause-btn {
@@ -557,48 +602,63 @@
             }
 
             .theme-toggle {
-                top: 15px;
-                right: 15px;
-                padding: 6px 12px;
-                font-size: 0.75rem;
+                top: 10px;
+                right: 10px;
+                padding: 5px 10px;
+                font-size: 0.7rem;
             }
 
             .pause-btn {
-                top: 15px;
-                left: 15px;
-                padding: 6px 12px;
-                font-size: 0.75rem;
+                top: 10px;
+                left: 10px;
+                padding: 5px 10px;
+                font-size: 0.7rem;
             }
 
             .overlay h1 {
-                font-size: 2rem;
+                font-size: 1.8rem;
             }
 
             .overlay p {
-                font-size: 1rem;
+                font-size: 0.9rem;
+                margin-bottom: 20px;
+            }
+
+            .overlay button {
+                padding: 10px 25px;
+            }
+
+            #nextCanvasMobile {
+                width: 60px;
+                height: 60px;
             }
         }
 
-        @media (max-height: 700px) and (max-width: 768px) {
+        @media (max-height: 650px) and (max-width: 768px) {
             body {
-                padding-top: 50px;
+                padding-top: 40px;
+            }
+
+            .game-container {
+                height: calc(100vh - 40px);
+                height: calc(100dvh - 40px);
             }
 
             .word-display {
-                min-height: 50px;
-            }
-
-            .current-word {
-                font-size: 1.2rem;
-                margin-bottom: 4px;
-            }
-
-            .definition {
-                font-size: 0.75rem;
+                display: none;
             }
 
             .touch-btn {
-                height: 50px;
+                height: 40px;
+                width: 55px;
+            }
+
+            .touch-btn.wide {
+                width: 120px;
+            }
+
+            .mobile-difficulty {
+                display: none;
             }
         }
     </style>
@@ -655,23 +715,23 @@
 
             <div class="touch-controls">
                 <div class="touch-row">
-                    <button class="touch-btn" ontouchstart="handleTouch('rotate')" onclick="handleTouch('rotate')">
+                    <button class="touch-btn" id="btn-rotate">
                         <span>↻</span>
                     </button>
                 </div>
                 <div class="touch-row">
-                    <button class="touch-btn" ontouchstart="handleTouch('left')" onclick="handleTouch('left')">
+                    <button class="touch-btn" id="btn-left">
                         <span>←</span>
                     </button>
-                    <button class="touch-btn" ontouchstart="handleTouch('down')" onclick="handleTouch('down')">
+                    <button class="touch-btn" id="btn-down">
                         <span>↓</span>
                     </button>
-                    <button class="touch-btn" ontouchstart="handleTouch('right')" onclick="handleTouch('right')">
+                    <button class="touch-btn" id="btn-right">
                         <span>→</span>
                     </button>
                 </div>
                 <div class="touch-row">
-                    <button class="touch-btn wide" ontouchstart="handleTouch('drop')" onclick="handleTouch('drop')">
+                    <button class="touch-btn wide" id="btn-drop">
                         <span>Drop</span>
                     </button>
                 </div>
@@ -847,8 +907,15 @@
             // Set up initials input
             setupInitialsInput();
 
+            // Set up touch controls
+            setupTouchControls();
+
             // Display leaderboard
             updateLeaderboardDisplay();
+
+            // Scale canvas for mobile
+            scaleForMobile();
+            window.addEventListener('resize', scaleForMobile);
 
             // Initial render
             drawBoard();
@@ -1245,6 +1312,33 @@
             }
         }
 
+        // Set up touch control buttons (prevents double-firing)
+        function setupTouchControls() {
+            const buttons = {
+                'btn-rotate': 'rotate',
+                'btn-left': 'left',
+                'btn-right': 'right',
+                'btn-down': 'down',
+                'btn-drop': 'drop'
+            };
+
+            Object.entries(buttons).forEach(([id, action]) => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        handleTouch(action);
+                    }, { passive: false });
+                    // Fallback for non-touch devices
+                    btn.addEventListener('click', (e) => {
+                        if (!('ontouchstart' in window)) {
+                            handleTouch(action);
+                        }
+                    });
+                }
+            });
+        }
+
         function movePiece(dir) {
             currentPiece.x += dir;
             if (collision()) {
@@ -1412,6 +1506,38 @@
                     <span class="score">${entry.score}</span>
                 </div>
             `).join('');
+        }
+
+        // Scale game to fit mobile screens
+        function scaleForMobile() {
+            if (window.innerWidth > 768) return;
+
+            const viewportHeight = window.innerHeight;
+            const viewportWidth = window.innerWidth;
+
+            // Calculate available height (minus top buttons, word display, controls, margins)
+            const topPadding = 50;  // pause/theme buttons
+            const wordDisplayHeight = 55;
+            const mobileInfoHeight = 50;
+            const touchControlsHeight = 145;
+            const margins = 30;
+
+            const availableHeight = viewportHeight - topPadding - wordDisplayHeight - mobileInfoHeight - touchControlsHeight - margins;
+            const availableWidth = viewportWidth - 20;
+
+            // Calculate scale to fit
+            const scaleByHeight = availableHeight / 600;
+            const scaleByWidth = availableWidth / 300;
+            const scale = Math.min(scaleByHeight, scaleByWidth, 1);
+
+            // Apply scale via CSS transform
+            const gameCanvas = document.getElementById('gameCanvas');
+            gameCanvas.style.transform = `scale(${scale})`;
+            gameCanvas.style.transformOrigin = 'top center';
+
+            // Adjust container to account for scaled size
+            const scaledHeight = 600 * scale;
+            gameCanvas.style.marginBottom = `${scaledHeight - 600}px`;
         }
 
         // Initialize on load
